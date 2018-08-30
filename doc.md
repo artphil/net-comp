@@ -5,3 +5,7 @@
 ### Arthur Silva
 
 ### Gabriel Almeida
+
+
+### Referencias
+[Python](https://docs.python.org/3/library/socket.html)
