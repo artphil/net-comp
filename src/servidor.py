@@ -31,6 +31,10 @@ udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
 orig = (HOST, PORT)
 udp.bind(orig)
 
+# Tratamento log
+arq_log = open(arquivo, 'w')
+
+
 # Tratamento de conversas
 variaveis = ['id', 'seg', 'ns', 'sz', 'msg', 'md5']
 v_pack = ['L', 'L', 'I', 'H']
@@ -60,7 +64,9 @@ while True:
 			data += str(cliente_list[cliente][value])
 		chash = compare_hash(crypt.crypt(data, cliente_list[cliente]['md5']), cliente_list[cliente]['md5'])
 
-		print ('chahs= ', chash)
+		print ('chash= ', chash)
+		if chash:
+			arq_log.write(cliente_list[cliente]['msg']+'\n')
 
 	dprint(cliente_list)
 
