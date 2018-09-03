@@ -1,7 +1,18 @@
-import socket
+# Universidade Federal de Minas Gerais
+# Arthur Phillip D. Silva & Gabriel Almeida de Jesus
+# Servidor UDP
 
-HOST = ''              # Endereco IP do Servidor
-PORT = 5000            # Porta que o Servidor esta
+import socket
+import sys
+
+HOST = ''					# Endereco IP do Servidor
+PORT = int(sys.argv[2])		# Porta que o Servidor esta
+
+# Recebendo parametros de Entrada
+arquivo = sys.argv[1]
+tamJanela = int(sys.argv[3])
+probErro = float(sys.argv[4])
+
 udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
 orig = (HOST, PORT)
 udp.bind(orig)
