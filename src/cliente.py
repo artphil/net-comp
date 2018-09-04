@@ -25,27 +25,24 @@ ProbErro = float(sys.argv[5])
 udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 dest = (HOST, PORT)
 
-# Tratamento da entrada
+# Tratamento de envio
 msg_id = 0
+
+janela = []
 
 arq = open(arquivo, 'r')
 linha = arq.readline()
 tempo = time()
-while linha:
+while linha or len(janela) > 0:
 	msg = linha[:-1]
-	segundos = int(tempo)
-	nanoseg = int((tempo-segundos)*1000000000)
-	tam = len(linha)
+	seg = int(tempo)
+	nseg = int((tempo-seg)*1000000000)
+	tam = len(msg)
 
-	mhash = crypt.crypt(str(msg_id)+str(segundos)+str(nanoseg)+str(tam)+msg, crypt.METHOD_MD5)
+	mhash = crypt.crypt(str(msg_id)+str(seg)+str(nseg)+str(tam)+msg, crypt.METHOD_MD5)
 	print (mhash)
 
-	udp.sendto(pack('L', msg_id), dest)
-	udp.sendto(pack('L', segundos), dest)
-	udp.sendto(pack('I', nanoseg), dest)
-	udp.sendto(pack('H', tam), dest)
-	udp.sendto(msg.encode('latin1'), dest)
-	udp.sendto(mhash.encode('latin1'), dest)
+	udp.sendto(pack('L', msg_id)+pack('L', seg)+pack('I', nseg)+pack('H', tam)+msg.encode('latin1')+mhash.encode('latin1'), dest)
 
 	linha = arq.readline()
 	tempo = time()
