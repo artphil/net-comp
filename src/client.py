@@ -1,13 +1,43 @@
-# Universidade Federal de Minas Gerais
-# Arthur Phillip D. Silva & Gabriel Almeida de Jesus
-# Cliente UDP
+'''
+ Universidade Federal de Minas Gerais
+ Trabalho pratico da disciplina Rede de Computadores da UFMG
+ Cliente UDP
 
+ Arthur Phillip D. Silva & Gabriel Almeida de Jesus
+'''
+
+# Bibliotecas
 import socket
 import sys
 import string
 import crypt
 from struct import pack
 from time import time
+
+'''
+Chamada do programa
+
+python client.py <arquivo> <IP>:<port> <Wtx> <Tout> <Perror>
+
+arquivo	: para leitura das mensagens
+IP		: ip do servidor
+port	: porto do servidor
+Wtx		: tamanho da janela deslizante
+Tout	: tempo limite para reenvio
+Perror	: probabilidade de erro do md5 de envio
+
+DIAGRAMA 1: Formato de mensagens de log
+0        8       16   20 22              22+sz            22+sz+16
++--------+--------+----+--+----/ ... /----+----------------+
+|seqnum  |sec     |nsec|sz|message        |md5             |
++--------+--------+----+--+----/ ... /----+----------------+
+
+DIAGRAMA 2: Formato de mensagens de confirmação (ack)
+0        8       16   20               36
++--------+--------+----+----------------+
+|seqnum  |sec     |nsec|md5             |
++--------+--------+----+----------------+ 
+'''
 
 # Recebe e separa os Parametros Host e Port
 HostPort = sys.argv[2]
