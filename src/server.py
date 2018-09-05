@@ -107,6 +107,7 @@ while True:
 			cliente_list[cliente] = {}
 			cliente_list[cliente]['janela'] = {}
 			cliente_list[cliente]['gravar'] = 0
+			cliente_list[cliente]['gravado'] = []
 
 		# Atualiza ultimo contado com cliente
 		cliente_list[cliente]['tempo'] = time()
@@ -125,11 +126,18 @@ while True:
 
 	# Salva todas as mensagens posssiveis no arquivo respeitando a ordem
 	for k, v in cliente_list.items():
-		for k1, v1 in v['janela'].items()
-		if v['gravar'] == k1:
-			arq_log.write(v1['msg']+'\n')
-			del v['janela'][ v['gravar'] ]
-			v['gravar'] += 1
+		# Grava as mensagens e as marca
+		for k1, v1 in v['janela'].items():
+			if v['gravar'] == k1:
+				arq_log.write(v1['msg']+'\n')
+				v['gravado'].append(v['gravar'])
+				v['gravar'] += 1
+		# Deleta as mensagens ja gravadas
+		while v['gravado']:
+			n = v['gravado'][0]
+			del v['janela'][n]
+			del v['gravado'][0]
+
 
 	dprint(cliente_list)
 
