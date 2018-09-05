@@ -50,7 +50,7 @@ def dprint (d):
 	print('----------------------------------')
 
 
-# Definicao de parametros
+# Recebe e separa os Parametros Host e Port
 HOST = ''					# Endereco IP do Servidor
 PORT = int(sys.argv[2])		# Porta que o Servidor esta
 
@@ -101,6 +101,7 @@ while True:
 
 	# Verifica integridade do pacote
 	if compare_hash(mhash, chash):
+		#TODO: enviar confirmacao
 		# Verifica se eh nova conexao
 		if cliente not in cliente_list:
 			cliente_list[cliente] = {}
