@@ -11,7 +11,9 @@ import socket
 import sys
 import string
 import crypt
-from struct import pack
+import threading
+from struct import pack, unpack, calcsize
+from hmac import compare_digest as compare_hash
 from time import time
 
 '''
@@ -39,6 +41,119 @@ DIAGRAMA 2: Formato de mensagens de confirmação (ack)
 +--------+--------+----+----------------+
 '''
 
+# fim_arq = False
+
+# Imprime a janela deslizante
+def j_print ():
+	j_lock.acquire()
+	print('--------------Data----------------')
+	for k, v in janela.items():
+		print ('id:', k)
+		for k1, v1 in v.items():
+			print ('	', k1, '	:', v1)
+	print()
+	print('----------------------------------')
+	j_lock.release()
+
+
+# Gerenciamento de envio
+def envia():
+	global fim_arq
+
+	# Leitura da primeira linha do arquivo
+	msg_id = 0
+	linha = arq.readline()
+	tempo = time()
+
+	# Envia pacotes
+	while not fim_arq or len(janela) > 0:
+		print ('l', linha, 'j', len(janela))
+
+		# Verifica se tem linha no arquivo
+		if linha:
+			# Popular janela
+			if len(janela) < Wtx:
+				# Composicao do pacote a enviar
+				j_lock.acquire()
+				janela[msg_id] = {}
+				janela[msg_id]['msg'] = linha[:-1]
+				janela[msg_id]['tam'] = len(linha)-1
+				janela[msg_id]['tempo'] = 0
+				janela[msg_id]['seg'] = 0
+				janela[msg_id]['nseg'] = 0
+				j_lock.release()
+
+				# Leitura de nova linha do arquivo
+				msg_id += 1
+				linha = arq.readline()
+		else :
+			fim_arq = True
+
+
+		j_lock.acquire()
+		for m_id, v in janela.items():
+			if time() > (v['tempo'] + Tout):
+				v['tempo'] = time()
+				v['seg'] = int(v['tempo'])
+				v['nseg'] = int((v['tempo']-v['seg'])*100000000)
+
+				# Calculo hash do pacote
+				data = str(m_id)+str(v['seg'])+str(v['nseg'])+str(v['tam'])+v['msg']
+				mhash = crypt.crypt(data, crypt.METHOD_MD5)
+				print (mhash)
+
+				# Composicao do pacote
+				pacote  = pack('L', m_id)
+				pacote += pack('L', v['seg'])
+				pacote += pack('I', v['nseg'])
+				pacote += pack('H', v['tam'])
+				pacote += v['msg'].encode('latin1')
+				# Envio do pacote + hash
+				udp.sendto(pacote+mhash.encode('latin1'), dest)
+				print('envia:')
+		j_lock.release()
+
+		j_print()
+
+	arq.close()
+
+
+# Gerenciamento de confirmacao
+def recebe():
+	# Recebe confirmacao
+	while (not fim_arq) or len(janela) > 0:
+		print ('a', fim_arq, 'j', len(janela))
+
+		# Espera contato
+		pacote, servidor = udp.recvfrom(1024)
+		print(pacote)
+		print('recebe:')
+		j_print()
+
+		# secciona pacote em variaveis
+		parte = pacote[:calcsize('L')]
+		r_id = unpack('L', parte)[0]
+		pacote = pacote[calcsize('L'):]
+
+		parte = pacote[:calcsize('L')]
+		r_seg = unpack('L', parte)[0]
+		pacote = pacote[calcsize('L'):]
+
+		parte = pacote[:calcsize('I')]
+		r_nseg = unpack('I', parte)[0]
+		pacote = pacote[calcsize('I'):]
+
+		rhash = pacote.decode('latin1')
+		chash = crypt.crypt(str(r_id)+str(r_seg)+str(r_nseg), rhash)
+
+		if compare_hash(rhash, chash):
+			if r_id in janela:
+				j_lock.acquire()
+				del janela[r_id]
+				j_lock.release()
+
+		print('Janela: ', janela)
+
 # Recebe e separa os Parametros Host e Port
 HostPort = sys.argv[2]
 P_Host, P_Port = HostPort.split(':')
@@ -48,49 +163,31 @@ PORT = int(P_Port)	# Porta que o Servidor esta
 
 # Recebendo parametros de Entrada
 arquivo = sys.argv[1]
-tamJanela = int(sys.argv[3])
-temporiz = int(sys.argv[4])
-ProbErro = float(sys.argv[5])
+Wtx = int(sys.argv[3])
+Tout = int(sys.argv[4])
+Perror = float(sys.argv[5])
 
 # Criando socket de comunicacao UDP
 udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 dest = (HOST, PORT)
 
 # Tratamento de envio
-msg_id = 0
-
-janela = []
-
-# Leitura da primeira linha do arquivo
 arq = open(arquivo, 'r')
-linha = arq.readline()
-tempo = time()
+fim_arq = False
+
+# Armazem de mensagens não confirmadas
+janela = {}
+# Gerenciador de concorrencia
+j_lock = threading.Lock()
 
 # Execucao do programa
-while linha or len(janela) > 0:
-	# Composicao do pacote a enviar
-	msg = linha[:-1]
-	seg = int(tempo)
-	nseg = int((tempo-seg)*1000000000)
-	tam = len(msg)
+e = threading.Thread(target=envia)
+r = threading.Thread(target=recebe)
 
-	#TODO: colocar pacote sem hash em estrutura
-	# Calculo hash do pacote
-	mhash = crypt.crypt(str(msg_id)+str(seg)+str(nseg)+str(tam)+msg, crypt.METHOD_MD5)
-	print (mhash)
+e.start()
+r.start()
 
-	#TODO: enviar todos pacotes novos ou com time out
-	# Envio do pacote + hash
-	udp.sendto(pack('L', msg_id)+pack('L', seg)+pack('I', nseg)+pack('H', tam)+msg.encode('latin1')+mhash.encode('latin1'), dest)
+e.join()
+r.join()
 
-	#TODO: ler somente se tiver espaco na janela
-	# Leitura de nova linha do arquivo
-	linha = arq.readline()
-	tempo = time()
-	msg_id += 1
-
-	#TODO: receber confirmacao
-	#TODO: apagar confirmados da janela
-
-arq.close()
 udp.close()

@@ -8,7 +8,7 @@
 import socket
 import sys
 import crypt
-from struct import unpack, calcsize
+from struct import pack, unpack, calcsize
 from time import time
 from hmac import compare_digest as compare_hash
 
@@ -102,6 +102,9 @@ while True:
 	# Verifica integridade do pacote
 	if compare_hash(mhash, chash):
 		#TODO: enviar confirmacao
+		rhash = crypt.crypt(str(msg_id)+str(seg)+str(nseg), crypt.METHOD_MD5)
+		udp.sendto(pack('L', msg_id)+pack('L', seg)+pack('I', nseg)+rhash.encode('latin1'), cliente)
+
 		# Verifica se eh nova conexao
 		if cliente not in cliente_list:
 			cliente_list[cliente] = {}
