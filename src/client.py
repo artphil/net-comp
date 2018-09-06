@@ -10,6 +10,7 @@
 import socket
 import sys
 import string
+import random
 import crypt
 import threading
 from struct import pack, unpack, calcsize
