@@ -10,6 +10,7 @@
 import socket
 import sys
 import string
+import random
 import crypt
 from struct import pack
 from time import time
@@ -38,6 +39,13 @@ DIAGRAMA 2: Formato de mensagens de confirmação (ack)
 |seqnum  |sec     |nsec|md5             |
 +--------+--------+----+----------------+
 '''
+
+def ErroMD5 (ProbErro):
+	rand = random.random()
+	if rand < ProbErro:
+		True # Houve Erro
+	else:
+		False # Nao Houve Erro
 
 # Recebe e separa os Parametros Host e Port
 HostPort = sys.argv[2]
@@ -75,8 +83,11 @@ while linha or len(janela) > 0:
 	tam = len(msg)
 
 	#TODO: colocar pacote sem hash em estrutura
-	# Calculo hash do pacote
-	mhash = crypt.crypt(str(msg_id)+str(seg)+str(nseg)+str(tam)+msg, crypt.METHOD_MD5)
+	# Calculo hash do pacote com a probabilidade de Erro
+	if ErroMD5 != True:
+		mhash = crypt.crypt(str(msg_id)+str(seg)+str(nseg)+str(tam)+msg, crypt.METHOD_MD5)
+	else:
+		mhash = crypt.crypt(str(msg_id)+str(msg_id)+str(msg_id)+str(msg_id)+msg_id, crypt.METHOD_MD5)
 	print (mhash)
 
 	#TODO: enviar todos pacotes novos ou com time out
