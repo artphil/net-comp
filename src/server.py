@@ -36,9 +36,9 @@ DIAGRAMA 2: Formato de mensagens de confirmação (ack)
 '''
 
 # Imprime a janela deslizante
-def dprint (d):
+def dprint():
 	print('--------------Data----------------')
-	for k, v in d.items():
+	for k, v in cliente_list.items():
 		print (k)
 		print ('	tempo	:', v['tempo'])
 		print ('	gravado	:', v['gravar'])
@@ -100,8 +100,8 @@ while True:
 	chash = crypt.crypt(str(msg_id)+str(seg)+str(nseg)+str(tam)+msg, mhash)
 
 	# Verifica integridade do pacote
+	print(compare_hash(mhash, chash))
 	if compare_hash(mhash, chash):
-		#TODO: enviar confirmacao
 		rhash = crypt.crypt(str(msg_id)+str(seg)+str(nseg), crypt.METHOD_MD5)
 		udp.sendto(pack('L', msg_id)+pack('L', seg)+pack('I', nseg)+rhash.encode('latin1'), cliente)
 
@@ -141,7 +141,6 @@ while True:
 			del v['janela'][n]
 			del v['gravado'][0]
 
-
-	dprint(cliente_list)
+	dprint()
 
 udp.close()

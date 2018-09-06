@@ -10,9 +10,9 @@
 import socket
 import sys
 import string
-import random
 import crypt
 import threading
+from random import random
 from struct import pack, unpack, calcsize
 from hmac import compare_digest as compare_hash
 from time import time
@@ -42,7 +42,14 @@ DIAGRAMA 2: Formato de mensagens de confirmação (ack)
 +--------+--------+----+----------------+
 '''
 
-# fim_arq = False
+# Verifica de deve ter erro
+def ErroMD5 ():
+	rand = random()
+	print('\nrand: ', rand, 'erro', Perror, '\n')
+	if rand < Perror:
+		return True # Houve Erro
+	else:
+		return False # Nao Houve Erro
 
 # Imprime a janela deslizante
 def j_print ():
@@ -68,7 +75,7 @@ def envia():
 
 	# Envia pacotes
 	while not fim_arq or len(janela) > 0:
-		print ('l', linha, 'j', len(janela))
+		# print ('l', linha, 'j', len(janela))
 
 		# Verifica se tem linha no arquivo
 		if linha:
@@ -100,8 +107,16 @@ def envia():
 
 				# Calculo hash do pacote
 				data = str(m_id)+str(v['seg'])+str(v['nseg'])+str(v['tam'])+v['msg']
-				mhash = crypt.crypt(data, crypt.METHOD_MD5)
-				print (mhash)
+
+				# Calculo hash do pacote com a probabilidade de Erro
+				if ErroMD5():
+					mhash = crypt.crypt(data+'erro', crypt.METHOD_MD5)
+					print('nao envia', m_id)
+				else:
+					mhash = crypt.crypt(data, crypt.METHOD_MD5)
+					print('envia', m_id)
+
+				# print (mhash)
 
 				# Composicao do pacote
 				pacote  = pack('L', m_id)
@@ -111,10 +126,10 @@ def envia():
 				pacote += v['msg'].encode('latin1')
 				# Envio do pacote + hash
 				udp.sendto(pacote+mhash.encode('latin1'), dest)
-				print('envia:')
 		j_lock.release()
 
-		j_print()
+		# print('envia:')
+		# j_print()
 
 	arq.close()
 
@@ -123,11 +138,11 @@ def envia():
 def recebe():
 	# Recebe confirmacao
 	while (not fim_arq) or len(janela) > 0:
-		print ('a', fim_arq, 'j', len(janela))
+		# print ('a', fim_arq, 'j', len(janela))
 
 		# Espera contato
 		pacote, servidor = udp.recvfrom(1024)
-		print(pacote)
+		# print(pacote)
 		print('recebe:')
 		j_print()
 
@@ -152,8 +167,6 @@ def recebe():
 				j_lock.acquire()
 				del janela[r_id]
 				j_lock.release()
-
-		print('Janela: ', janela)
 
 # Recebe e separa os Parametros Host e Port
 HostPort = sys.argv[2]
