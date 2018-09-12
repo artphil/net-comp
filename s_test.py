@@ -1,11 +1,11 @@
 import sys
 import os
 from random import random, randint
-import time
+from time import gmtime, strftime
 
 prefix = 'logs/'
 
-prog 	= 'src/servero.py'
+prog 	= 'src/server.py'
 port	= '5000'
 # Wrx	= '5'
 # Perror= '0.5'
@@ -13,9 +13,8 @@ port	= '5000'
 if len(sys.argv) == 2:
 	port = sys.argv[1]
 
-print(strftime("%a, %d %b %Y %H:%M:%S +0000", time.gmtime()))
-arquivo = prefix+'a.out'
-#str()
+arq = strftime("log_%Y%b%d_%Hh%Mm%Ss.dat", gmtime())
+arquivo = prefix+arq
 Wrx		= str(randint(1,10))
 Perror	= str(random())
 
