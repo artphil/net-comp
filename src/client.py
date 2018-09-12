@@ -42,7 +42,8 @@ DIAGRAMA 2: Formato de mensagens de confirmação (ack)
 +--------+--------+----+----------------+
 '''
 
-# Verifica de deve ter erro
+''' Funcoes '''
+# Verifica se deve ter erro
 def ErroMD5 ():
 	rand = random()
 	print('\nrand: ', rand, 'erro', Perror, '\n')
@@ -62,7 +63,6 @@ def j_print ():
 	print()
 	print('----------------------------------')
 	j_lock.release()
-
 
 # Gerenciamento de envio
 def envia():
@@ -105,16 +105,15 @@ def envia():
 				v['seg'] = int(v['tempo'])
 				v['nseg'] = int((v['tempo']-v['seg'])*100000000)
 
-				# Calculo hash do pacote
+				# Calculo hash do pacote com a probabilidade de Erro
 				data = str(m_id)+str(v['seg'])+str(v['nseg'])+str(v['tam'])+v['msg']
 
-				# Calculo hash do pacote com a probabilidade de Erro
 				if ErroMD5():
 					mhash = crypt.crypt(data+'erro', crypt.METHOD_MD5)
-					print('nao envia', m_id)
+					print('m errado', m_id)
 				else:
 					mhash = crypt.crypt(data, crypt.METHOD_MD5)
-					print('envia', m_id)
+					print('m certo', m_id)
 
 				# print (mhash)
 
@@ -162,12 +161,15 @@ def recebe():
 		rhash = pacote.decode('latin1')
 		chash = crypt.crypt(str(r_id)+str(r_seg)+str(r_nseg), rhash)
 
+		# Libera mensagem confirmada da janela
 		if compare_hash(rhash, chash):
 			if r_id in janela:
 				j_lock.acquire()
 				del janela[r_id]
 				j_lock.release()
 
+
+''' Programa '''
 # Recebe e separa os Parametros Host e Port
 HostPort = sys.argv[2]
 P_Host, P_Port = HostPort.split(':')
@@ -198,9 +200,11 @@ j_lock = threading.Lock()
 e = threading.Thread(target=envia)
 r = threading.Thread(target=recebe)
 
+# Inicia as threads
 e.start()
 r.start()
 
+# Espera retorno
 e.join()
 r.join()
 
