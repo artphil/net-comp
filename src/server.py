@@ -5,6 +5,8 @@
 
  Arthur Phillip D. Silva & Gabriel Almeida de Jesus
 '''
+
+# Bibliotecas
 import socket
 import sys
 import crypt
@@ -15,14 +17,15 @@ from hmac import compare_digest as compare_hash
 
 '''
 Chamada do programa
-
 python server.py <arquivo> <port> <Wrx> <Perror>
 
+Variaveis
 arquivo	: caminho para gravar logs
 port	: porto do servidor
 Wrx		: tamanho da janela deslizante
 Perror	: probabilidade de erro do md5 de confirmacao
 
+Formato da Janela Deslizante
 DIAGRAMA 1: Formato de mensagens de log
 0        8       16   20 22              22+sz            22+sz+16
 +--------+--------+----+--+----/ ... /----+----------------+
@@ -36,8 +39,9 @@ DIAGRAMA 2: Formato de mensagens de confirmação (ack)
 +--------+--------+----+----------------+
 '''
 
+
 ''' Funcoes '''
-# Verifica se deve ter erro
+# Verifica se deve haver erro
 def ErroMD5 ():
 	rand = random()
 	print('\nrand: ', rand, 'erro', Perror, '\n')
