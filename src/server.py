@@ -67,7 +67,7 @@ def dprint():
 
 ''' Programa '''
 # Recebe e separa os Parametros Host e Port
-HOST = ''					# Endereco IP do Servidor
+HOST = ''			# Endereco IP do Servidor
 PORT = int(sys.argv[2])		# Porto do Servidor
 
 # Recebendo parametros de Entrada

@@ -12,10 +12,10 @@ import sys
 import string
 import crypt
 import threading
+from time import time
 from random import random
 from struct import pack, unpack, calcsize
 from hmac import compare_digest as compare_hash
-from time import time
 
 '''
 Chamada do programa
