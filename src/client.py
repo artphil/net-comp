@@ -48,7 +48,7 @@ DIAGRAMA 2: Formato de mensagens de confirmação (ack)
 # Verifica se deve haver erro
 def ErroMD5 ():
 	rand = random()
-	print('\nrand: ', rand, 'erro', Perror, '\n')
+	# print('\nrand: ', rand, 'erro', Perror, '\n')
 	if rand < Perror:
 		return True # Houve Erro
 	else:
@@ -112,10 +112,10 @@ def envia():
 
 				if ErroMD5():
 					mhash = crypt.crypt(data+'erro', crypt.METHOD_MD5)
-					print('m errado', m_id)
+					# print('m errado', m_id)
 				else:
 					mhash = crypt.crypt(data, crypt.METHOD_MD5)
-					print('m certo', m_id)
+					# print('m certo', m_id)
 
 				# print (mhash)
 
@@ -144,8 +144,8 @@ def recebe():
 		# Espera contato
 		pacote, servidor = udp.recvfrom(1024)
 		# print(pacote)
-		print('recebe:')
-		j_print()
+		# print('recebe:')
+		# j_print()
 
 		# secciona pacote em variaveis
 		parte = pacote[:calcsize('L')]

@@ -199,7 +199,7 @@ def recebe():
 			if r_id in janela:
 				j_lock.acquire()
 				janela[r_id]['erro_r'] += 1
-				print(janela[r_id]['erro_r'])
+				print(r_id, janela[r_id]['erro_r'])
 				j_lock.release()
 
 
