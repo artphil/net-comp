@@ -16,7 +16,7 @@ if len(sys.argv) == 3:
 	IP   = sys.argv[1]
 	port = sys.argv[2]
 
-arq_log = 'logs/log_client_s001.csv'
+arq_log = 'logs/log_client_s05.csv'
 
 log = open(arq_log, 'w')
 log.write('Time, Perror, Wtx, Tout, ')
