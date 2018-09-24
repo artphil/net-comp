@@ -5,7 +5,8 @@ from time import gmtime, strftime
 
 prefix = 'logs/'
 
-prog 	= 'src/server.py'
+prog 	= 'src_test/server.py'
+# prog 	= 'src/server.py'
 port	= '5000'
 # Wrx	= '5'
 # Perror= '0.5'

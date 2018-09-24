@@ -140,24 +140,24 @@ while True:
 				rhash = crypt.crypt(data, crypt.METHOD_MD5)
 				print('r certo', msg_id)
 
-				# Envia confirmacao
-				confirmacao = pack('L', msg_id)
-				confirmacao += pack('L', seg)
-				confirmacao += pack('I', nseg)
-				udp.sendto(confirmacao+rhash.encode('latin1'), cliente)
+			# Envia confirmacao
+			confirmacao = pack('L', msg_id)
+			confirmacao += pack('L', seg)
+			confirmacao += pack('I', nseg)
+			udp.sendto(confirmacao+rhash.encode('latin1'), cliente)
 
-				# Verifica se a mensagem ja foi gravada
-				if msg_id >= cliente_list[cliente]['gravar']:
-					# Verifica se a mensagem ja esta na janela
-					if msg_id not in cliente_list[cliente]['janela']:
-						# Verifica se a janela esta cheia
-						if len(cliente_list[cliente]['janela']) < Wrx:
-							# Insere a mensagem na janela do cliente
-							cliente_list[cliente]['janela'][msg_id] = {}
-							cliente_list[cliente]['janela'][msg_id]['seg'] = seg
-							cliente_list[cliente]['janela'][msg_id]['nseg'] = nseg
-							cliente_list[cliente]['janela'][msg_id]['msg'] = msg
-							cliente_list[cliente]['janela'][msg_id]['mhash'] = mhash
+			# Verifica se a mensagem ja foi gravada
+			if msg_id >= cliente_list[cliente]['gravar']:
+				# Verifica se a mensagem ja esta na janela
+				if msg_id not in cliente_list[cliente]['janela']:
+					# Verifica se a janela esta cheia
+					if len(cliente_list[cliente]['janela']) < Wrx:
+						# Insere a mensagem na janela do cliente
+						cliente_list[cliente]['janela'][msg_id] = {}
+						cliente_list[cliente]['janela'][msg_id]['seg'] = seg
+						cliente_list[cliente]['janela'][msg_id]['nseg'] = nseg
+						cliente_list[cliente]['janela'][msg_id]['msg'] = msg
+						cliente_list[cliente]['janela'][msg_id]['mhash'] = mhash
 
 	# Apaga cliente ocioso por mais de 60s
 	ociosos = []
