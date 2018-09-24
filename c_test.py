@@ -5,7 +5,8 @@ from time import time
 
 prefix = 'inputs/'
 
-prog 	= 'src_test/client.py'
+# prog 	= 'src_test/client.py'
+prog 	= 'src/client.py'
 IP		= '127.0.0.10'
 port	= '5000'
 # Wtx	= '5'
@@ -16,6 +17,7 @@ if len(sys.argv) == 3:
 	IP   = sys.argv[1]
 	port = sys.argv[2]
 
+'''
 arq_log = 'logs/log_client_s05.csv'
 
 log = open(arq_log, 'w')
@@ -65,3 +67,4 @@ log = open(arq_log, 'a')
 # log.write(comando+'\n')
 log.write(str(t_inicio)+';\n ')
 log.close()
+'''
