@@ -21,9 +21,56 @@ python router.py <ADDR> <PERIOD> [STARTUP]
 ADDR	: endereço IP qual o roteador deve se associar
 PERIOD	: periodo entre envio de mensagens de update
 STARTUP	: arquivos utilizados para montar a topologia inicial dos roteadores
+
+Exemplos de pacotes enviados:
+{
+	"type": "data",
+	"source": "127.0.1.2",
+	"destination: "127.0.1.1",
+	"payload": "{\"destination\": \"127.0.1.2\", \"type\": \"trace\", ...}"
+}
+
+{
+	"type": "update",
+	"source": "127.0.1.5",
+	"destination": "127.0.1.1",
+	"distances": {
+		"127.0.1.4": 10,
+		"127.0.1.5": 0,
+		"127.0.1.2": 10,
+		"127.0.1.3": 10
+	}
+}
+
+{
+	"type": "trace",
+	"source": "127.0.1.1",
+	"destination": "127.0.1.2",
+	"hops": ["127.0.1.1", "127.0.1.5"]
+}
 '''
 
 '''					 Classes  				'''
+
+'''
+Estruturas:
+vizinhos = {
+	<vizinho>:<custo>
+	<vizinho>:<custo>
+	...
+}
+destinos = {
+	<destino>:{
+		<vizinho>:<custo>
+		<vizinho>:<custo>
+		...
+	}
+	<destino>:{
+		<vizinho>:<custo>
+		...
+	}
+}
+'''
 # Gerenciador de vizinhos e destinos possiveis
 class dest_gerenc:
 
@@ -82,10 +129,10 @@ class dest_gerenc:
 
 		self.d_lock.release()
 
-	def dest_del(self, destino):
+	def dest_del(self, destino): ## ERRADO
 		self.d_lock.acquire()
 
-		# Remove destinos daa tabela
+		# Remove destinos da tabela
 		if destino in self.destinos:
 			del self.destinos[destino]
 
@@ -98,10 +145,34 @@ class dest_gerenc:
 				if len(v) == 0:
 					apagar.append(k)
 		# Remove destinos que nao sao mais alcancaveis
-		for d in k:
+		for d in apagar:
 			del self.destinos[d]
 
 		self.d_lock.release()
+
+	def dest_update(self, dic, vizinho):
+		self.d_lock.acquire()
+		apagar = []
+		# Confere de todos os destinos
+		for d,v in self.destinos.items():
+			# Caminhos que nao sao mais validos
+			if d is not in dic:
+				# E estao registados na estrutura
+				if vizinho is in v:
+					# E os remove
+					del v[vizinho]
+					# Identifica destinos sem rota
+					if len(v) == 0:
+						apagar.append(d)
+		# Remove destinos que nao sao mais alcancaveis
+		for d in apagar:
+			del self.destinos[d]
+		self.d_lock.release()
+
+		# Adiciona ou atualiza caminhos validos
+		for d,c in dic:
+			self.dest_add(d, c, vizinho)
+
 
 	# Lista de destinos com custos de vizinhos por onde passar
 	def to_print(self):
@@ -179,12 +250,14 @@ def recebe():
 	while ligado:
 		pacote, addr = udp.recvfrom(1048576)
 		pac = json.loads(pacote.decode('latin1'))
-
-		print ("recived: ",pac)
+		# print ("recived: ",addr[0])
+		v = addr[0]
 		if pac['type'] == 'update':
-			pass
+			destinos.dest_update(pac['distances'], v)
+
 		elif pac['type'] == 'trace':
 			pass
+
 		elif pac['type'] == 'data':
 			pass
 
