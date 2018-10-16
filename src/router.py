@@ -24,41 +24,103 @@ STARTUP	: arquivos utilizados para montar a topologia inicial dos roteadores
 '''
 
 '''					 Classes  				'''
+# Gerenciador de vizinhos e destinos possiveis
 class dest_gerenc:
-	list = {}
+	destinos = {} # Lista de destinos possiveis
+	vizinhos = {} # Lista de vizinhos
 
 	def __init__(self):
+		# controle de concorrencia
 		self.d_lock = threading.Lock()
+		self.v_lock = threading.Lock()
 
-	# Adiciona ou atualista um destino na lista
-	def addr_add(self, destino, custo, vizinho):
-		d_lock.acquire()
+	# Atualisa a tabela de vizinhos e destinos
+	def viz_add(self, vizinho, custo):
+		self.v_lock.acquire()
 
-		if destino in self.list:
-			if destino == vizinho:
-				if self.list[destino]['custo'] > custo:
-					self.list[destino]['custo'] = custo
-					self.list[destino]['vizinho'] = vizinho
-			else:
-				if self.list[destino]['custo'] > custo+self.list[vizinho]['custo']:
-					self.list[destino]['custo'] = custo+self.list[vizinho]['custo']
-					self.list[destino]['vizinho'] = vizinho
+		self.vizinhos[vizinho] = int(custo)
+
+		self.v_lock.release()
+
+		self.dest_add(vizinho, custo, vizinho)
+
+	# Remove vizinhos e os destinos relativos
+	def viz_del(self, vizinho):
+		self.v_lock.acquire()
+		# verifica se vizinho existe e o remove
+		if vizinho in self.vizinhos:
+			del self.vizinhos[vizinho]
 		else:
-			self.list[destino]['vizinho'] = vizinho
+			print(vizinho+' não encontrado')
+
+		self.v_lock.release()
+
+		self.dest_del(vizinho)
+
+	# Atualisa a tabela de destinos
+	def dest_add(self, destino, custo, vizinho):
+		self.d_lock.acquire()
+
+		c = int(custo)
+		# Atualisa destinos já existentes
+		if destino in self.destinos:
 			if destino == vizinho:
-				self.list[destino]['custo'] = custo
+				self.destinos[destino][vizinho] = c
 			else:
-				self.list[destino]['custo'] = custo+self.list[vizinho]['custo']
+				self.destinos[destino][vizinho] = c+self.vizinhos[vizinho]
 
-		d_lock.release()
+			self.destinos[destino] = sorted(self.destinos[destino],key = self.destinos[destino].get())
 
-	def addr_del(self, destino):
-		d_lock.acquire()
+		# insere vizinhos novos
+		else:
+			self.destinos[destino] = {}
+			if destino == vizinho:
+				self.destinos[destino][vizinho] = c
+			else:
+				self.destinos[destino][vizinho] = c+self.vizinhos[vizinho]
 
-		if destino in self.list:
-			del self.list[destino]
+		self.d_lock.release()
 
-		d_lock.release()
+	def dest_del(self, destino):
+		self.d_lock.acquire()
+
+		# Remove destinos daa tabela
+		if destino in self.destinos:
+			del self.destinos[destino]
+
+		# Procura rotas que usam o destino e remove esta opcao
+		apagar = []
+		for k,v in self.destinos:
+			if destino in v:
+				del v[destino]
+				# Identifica destinos sem rota
+				if len(v) == 0:
+					apagar.append(k)
+		# Remove destinos que nao sao mais alcancaveis
+		for d in k:
+			del self.destinos[d]
+
+		self.d_lock.release()
+
+	# Lista de destinos com custos de vizinhos por onde passar
+	def to_print(self):
+		p = []
+		for k,v in self.destinos.items():
+			viz = list(v)[0]
+			# print(k,viz,v)
+			p.append([k,v[viz],viz])
+
+		return p
+
+	def dest_list(self):
+		d = {}
+		for k,v in self.destinos.items():
+			viz = list(v)[0]
+			d[k] = str(v[viz])
+
+		return d
+
+
 
 '''					 Funcoes  				'''
 def le_comando():
@@ -66,27 +128,54 @@ def le_comando():
 	while ligado:
 		cmd = input().split(" ")
 		if cmd[0] == 'add' and len(cmd)>2:
-			print('add nao implantado')
+			# print('add nao implantado')
+			destinos.viz_add(cmd[1], cmd[2])
 		elif cmd[0] == 'del' and len(cmd)>1:
-			print('del nao implantado')
+			# print('del nao implantado')
+			destinos.viz_del(cmd[1])
 		elif cmd[0] == 'trace' and len(cmd)>2:
 			print('trace nao implantado')
+		elif cmd[0] == 'print':
+			for valor in destinos.to_print():
+			# for valor in destinos.dest_list().items():
+				print(valor)
 		elif cmd[0] == 'quit':
 			ligado = False
 		else:
 			print('comando invavido')
 
 def envia_custos():
-	global tempo, tout, ligado
+	global tempo, tout, ligado, HOST, PORT
 	while ligado:
 		if tempo+tout < time():
 			tempo = time()
-			pass
+			dest = destinos.dest_list()
+			pac = {
+			"type": "update",
+			"source": HOST,
+			"distances": dest
+			}
+			for d in dest:
+				if d != HOST:
+					pac ["destination"] = d
+					pacote = json.dumps(pac)
+					# print(pacote)
+					udp.sendto(pacote.encode('latin1'), (d, PORT))
+
 
 def recebe():
 	global ligado
 	while ligado:
 		pacote, addr = udp.recvfrom(1024)
+		pac = json.load(pacote.decode('latin1'))
+
+		if pac['type'] == 'update':
+			pass
+		elif pac['type'] == 'trace':
+			pass
+		elif pac['type'] == 'data':
+			pass
+
 
 '''					Programa				'''
 # Recebe e separa os Parametros Host e Port
@@ -104,27 +193,29 @@ tout = int(sys.argv[2])
 destinos = dest_gerenc()
 ligado = True
 
+destinos.viz_add(HOST, '0')
+
 if len(sys.argv) > 3:
 	for arq in sys.argv[3:]:
 		with open(arq, "r") as arq_start:
 			for dest in arq_start.readline():
 				cmd = dest[:-1].split(" ")
 				if cmd[0] == 'add':
-					destinos.addr_add(cmd[1], cmd[2], cmd[1])
+					destinos.viz_add(cmd[1], cmd[2])
 				if cmd[0] == 'del':
-					destinos.addr_del(cmd[1])
+					destinos.viz_del(cmd[1])
 
 # Execucao do programa
 comando = threading.Thread(target=le_comando)
-# envio = threading.Thread(target=envia_custos)
+envio = threading.Thread(target=envia_custos)
 # receb = threading.Thread(target=recebe)
 
 # Inicia as threads
 comando.start()
-# envio.start()
+envio.start()
 # receb.start()
 
 # Espera retorno
 comando.join()
-# envio.join()
+envio.join()
 # receb.join()
