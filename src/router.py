@@ -26,10 +26,11 @@ STARTUP	: arquivos utilizados para montar a topologia inicial dos roteadores
 '''					 Classes  				'''
 # Gerenciador de vizinhos e destinos possiveis
 class dest_gerenc:
-	destinos = {} # Lista de destinos possiveis
-	vizinhos = {} # Lista de vizinhos
 
 	def __init__(self):
+		self.destinos = {} # Lista de destinos possiveis
+		self.vizinhos = {} # Lista de vizinhos
+
 		# controle de concorrencia
 		self.d_lock = threading.Lock()
 		self.v_lock = threading.Lock()
@@ -105,18 +106,22 @@ class dest_gerenc:
 	# Lista de destinos com custos de vizinhos por onde passar
 	def to_print(self):
 		p = []
+		self.d_lock.acquire()
 		for k,v in self.destinos.items():
 			viz = list(v)[0]
 			# print(k,viz,v)
 			p.append([k,v[viz],viz])
+		self.d_lock.release()
 
 		return p
 
 	def dest_list(self):
 		d = {}
+		self.d_lock.acquire()
 		for k,v in self.destinos.items():
 			viz = list(v)[0]
 			d[k] = str(v[viz])
+		self.d_lock.release()
 
 		return d
 
@@ -127,20 +132,26 @@ def le_comando():
 	global ligado
 	while ligado:
 		cmd = input().split(" ")
+
 		if cmd[0] == 'add' and len(cmd)>2:
 			# print('add nao implantado')
 			destinos.viz_add(cmd[1], cmd[2])
+
 		elif cmd[0] == 'del' and len(cmd)>1:
 			# print('del nao implantado')
 			destinos.viz_del(cmd[1])
+
 		elif cmd[0] == 'trace' and len(cmd)>2:
 			print('trace nao implantado')
+
 		elif cmd[0] == 'print':
 			for valor in destinos.to_print():
 			# for valor in destinos.dest_list().items():
 				print(valor)
+
 		elif cmd[0] == 'quit':
 			ligado = False
+
 		else:
 			print('comando invavido')
 
@@ -166,9 +177,10 @@ def envia_custos():
 def recebe():
 	global ligado
 	while ligado:
-		pacote, addr = udp.recvfrom(1024)
-		pac = json.load(pacote.decode('latin1'))
+		pacote, addr = udp.recvfrom(1048576)
+		pac = json.loads(pacote.decode('latin1'))
 
+		print ("recived: ",pac)
 		if pac['type'] == 'update':
 			pass
 		elif pac['type'] == 'trace':
@@ -208,12 +220,12 @@ if len(sys.argv) > 3:
 # Execucao do programa
 comando = threading.Thread(target=le_comando)
 envio = threading.Thread(target=envia_custos)
-# receb = threading.Thread(target=recebe)
+receb = threading.Thread(target=recebe, daemon=True)
 
 # Inicia as threads
 comando.start()
 envio.start()
-# receb.start()
+receb.start()
 
 # Espera retorno
 comando.join()
