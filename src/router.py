@@ -11,8 +11,9 @@ import socket
 import sys
 import json
 import threading
+import operator
 from time import time
-# from struct import pack, unpack, calcsize
+
 '''
 Chamada do programa
 
@@ -90,7 +91,7 @@ class dest_gerenc:
 
 		self.v_lock.release()
 
-		self.dest_add(vizinho, custo, vizinho)
+		self.dest_add(vizinho, '0', vizinho)
 
 	# Remove vizinhos e os destinos relativos
 	def viz_del(self, vizinho):
@@ -107,29 +108,28 @@ class dest_gerenc:
 
 	# Atualisa a tabela de destinos
 	def dest_add(self, destino, custo, vizinho):
-		self.d_lock.acquire()
+		# Verifica se conhece rota para o destino
+		if vizinho in self.vizinhos:
+			self.d_lock.acquire()
+			# print(self.destinos)
 
-		c = int(custo)
-		# Atualisa destinos já existentes
-		if destino in self.destinos:
-			if destino == vizinho:
-				self.destinos[destino][vizinho] = c
-			else:
+			c = int(custo)
+			# Atualisa destinos já existentes
+			if destino in self.destinos:
 				self.destinos[destino][vizinho] = c+self.vizinhos[vizinho]
 
-			self.destinos[destino] = sorted(self.destinos[destino],key = self.destinos[destino].get())
+				self.destinos[destino] = dict(sorted(self.destinos[destino].items(), key=operator.itemgetter(1)))
+				# print(self.destinos[destino])
 
-		# insere vizinhos novos
-		else:
-			self.destinos[destino] = {}
-			if destino == vizinho:
-				self.destinos[destino][vizinho] = c
+			# insere vizinhos novos
 			else:
+				self.destinos[destino] = {}
 				self.destinos[destino][vizinho] = c+self.vizinhos[vizinho]
 
-		self.d_lock.release()
+			self.d_lock.release()
 
-	def dest_del(self, destino): ## ERRADO
+
+	def dest_del(self, destino):
 		self.d_lock.acquire()
 
 		# Remove destinos da tabela
@@ -138,7 +138,7 @@ class dest_gerenc:
 
 		# Procura rotas que usam o destino e remove esta opcao
 		apagar = []
-		for k,v in self.destinos:
+		for k,v in self.destinos.items():
 			if destino in v:
 				del v[destino]
 				# Identifica destinos sem rota
@@ -153,12 +153,13 @@ class dest_gerenc:
 	def dest_update(self, dic, vizinho):
 		self.d_lock.acquire()
 		apagar = []
+		# print(dic)
 		# Confere de todos os destinos
 		for d,v in self.destinos.items():
 			# Caminhos que nao sao mais validos
-			if d is not in dic:
+			if d not in dic:
 				# E estao registados na estrutura
-				if vizinho is in v:
+				if vizinho in v:
 					# E os remove
 					del v[vizinho]
 					# Identifica destinos sem rota
@@ -170,37 +171,45 @@ class dest_gerenc:
 		self.d_lock.release()
 
 		# Adiciona ou atualiza caminhos validos
-		for d,c in dic:
+		for d,c in dic.items():
 			self.dest_add(d, c, vizinho)
 
+	# identifica o melhor caminho para o destino
+	def viz_to_dest(self,dest):
+		if dest in self.destinos:
+			return list(self.destinos[dest])[0]
 
 	# Lista de destinos com custos de vizinhos por onde passar
 	def to_print(self):
-		p = []
-		self.d_lock.acquire()
-		for k,v in self.destinos.items():
-			viz = list(v)[0]
-			# print(k,viz,v)
-			p.append([k,v[viz],viz])
-		self.d_lock.release()
-
+		if self.destinos:
+			p = []
+			self.d_lock.acquire()
+			for k,v in self.destinos.items():
+				viz = list(v)[0]
+				# print(k,viz,v)
+				p.append([k,v[viz],viz])
+			self.d_lock.release()
+		else:
+			p = ['vazio']
 		return p
 
 	def dest_list(self):
-		d = {}
-		self.d_lock.acquire()
-		for k,v in self.destinos.items():
-			viz = list(v)[0]
-			d[k] = str(v[viz])
-		self.d_lock.release()
+		if self.destinos:
+			d = {}
+			self.d_lock.acquire()
+			for k,v in self.destinos.items():
+				viz = list(v)[0]
+				d[k] = str(v[viz])
 
-		return d
+			self.d_lock.release()
+
+			return d
 
 
 
 '''					 Funcoes  				'''
 def le_comando():
-	global ligado
+	global ligado, HOST, PORT
 	while ligado:
 		cmd = input().split(" ")
 
@@ -212,8 +221,21 @@ def le_comando():
 			# print('del nao implantado')
 			destinos.viz_del(cmd[1])
 
-		elif cmd[0] == 'trace' and len(cmd)>2:
-			print('trace nao implantado')
+		elif cmd[0] == 'trace' and len(cmd)>1:
+			# print('trace nao implantado')
+			dest = destinos.viz_to_dest(cmd[1])
+			if dest:
+				pac = {
+					"type": "trace",
+					"source": HOST,
+					"destination": cmd[1],
+					"hops": [HOST]
+				}
+				pacote = json.dumps(pac)
+				# print(pacote)
+				udp.sendto(pacote.encode('latin1'), (dest, PORT))
+			else:
+				print(cmd[1], 'nao pode ser alcancado')
 
 		elif cmd[0] == 'print':
 			for valor in destinos.to_print():
@@ -232,21 +254,22 @@ def envia_custos():
 		if tempo+tout < time():
 			tempo = time()
 			dest = destinos.dest_list()
-			pac = {
-			"type": "update",
-			"source": HOST,
-			"distances": dest
-			}
-			for d in dest:
-				if d != HOST:
-					pac ["destination"] = d
-					pacote = json.dumps(pac)
-					# print(pacote)
-					udp.sendto(pacote.encode('latin1'), (d, PORT))
+			if dest:
+				pac = {
+				"type": "update",
+				"source": HOST,
+				"distances": dest
+				}
+				for d in dest:
+					if d != HOST:
+						pac ["destination"] = d
+						pacote = json.dumps(pac)
+						# print(pacote)
+						udp.sendto(pacote.encode('latin1'), (d, PORT))
 
 
 def recebe():
-	global ligado
+	global ligado, HOST, PORT
 	while ligado:
 		pacote, addr = udp.recvfrom(1048576)
 		pac = json.loads(pacote.decode('latin1'))
@@ -256,10 +279,42 @@ def recebe():
 			destinos.dest_update(pac['distances'], v)
 
 		elif pac['type'] == 'trace':
-			pass
+			pac['hops'].append(HOST)
+			if pac['destination'] == HOST:
+				dest = destinos.viz_to_dest(pac['source'])
+				if dest:
+					rpac = {
+					"type": "data",
+					"source": HOST,
+					"destination": pac['source'],
+					"payload": pac
+					}
+					pacote = json.dumps(rpac)
+					# print(pacote)
+					udp.sendto(pacote.encode('latin1'), (dest, PORT))
+				else:
+					print(rpac['destination'], 'nao pode ser alcancado')
+			else:
+				dest = destinos.viz_to_dest(pac['destination'])
+				if dest:
+					pacote = json.dumps(pac)
+					# print(pacote)
+					udp.sendto(pacote.encode('latin1'), (dest, PORT))
+				else:
+					print(pac['destination'], 'nao pode ser alcancado')
 
 		elif pac['type'] == 'data':
-			pass
+			if pac['destination'] == HOST:
+				print (json.dumps(pac['payload'], sort_keys=True, indent=4))
+
+			else:
+				dest = destinos.viz_to_dest(pac['destination'])
+				if dest:
+					pacote = json.dumps(pac)
+					# print(pacote)
+					udp.sendto(pacote.encode('latin1'), (dest, PORT))
+				else:
+					print(pac['destination'], 'nao pode ser alcancado')
 
 
 '''					Programa				'''
@@ -283,7 +338,8 @@ destinos.viz_add(HOST, '0')
 if len(sys.argv) > 3:
 	for arq in sys.argv[3:]:
 		with open(arq, "r") as arq_start:
-			for dest in arq_start.readline():
+			for dest in arq_start.readlines():
+				# print(dest)
 				cmd = dest[:-1].split(" ")
 				if cmd[0] == 'add':
 					destinos.viz_add(cmd[1], cmd[2])
