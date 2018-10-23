@@ -74,7 +74,7 @@ destinos = {
 '''
 # Gerenciador de vizinhos e destinos possiveis
 class dest_gerenc:
-
+	# Connstrutor da classe
 	def __init__(self):
 		self.destinos = {} # Lista de destinos possiveis
 		self.vizinhos = {} # Lista de vizinhos
@@ -91,6 +91,7 @@ class dest_gerenc:
 
 		self.v_lock.release()
 
+		# Atualisa destinos
 		self.dest_add(vizinho, '0', vizinho)
 
 	# Remove vizinhos e os destinos relativos
@@ -99,11 +100,12 @@ class dest_gerenc:
 		# verifica se vizinho existe e o remove
 		if vizinho in self.vizinhos:
 			del self.vizinhos[vizinho]
-		else:
-			print(vizinho+' não encontrado')
+		# else:
+			# print(vizinho+' não encontrado')
 
 		self.v_lock.release()
 
+		# remove destino
 		self.dest_del(vizinho)
 
 	# Atualisa a tabela de destinos
@@ -118,6 +120,7 @@ class dest_gerenc:
 			if destino in self.destinos:
 				self.destinos[destino][vizinho] = c+self.vizinhos[vizinho]
 
+				# Ordena vizinhos para destino pelo custo
 				self.destinos[destino] = dict(sorted(self.destinos[destino].items(), key=operator.itemgetter(1)))
 				# print(self.destinos[destino])
 
@@ -179,7 +182,7 @@ class dest_gerenc:
 		if dest in self.destinos:
 			return list(self.destinos[dest])[0]
 
-	# Lista de destinos com custos de vizinhos por onde passar
+	# Lista [destino, custo, vizinho]
 	def to_print(self):
 		if self.destinos:
 			p = []
@@ -193,6 +196,11 @@ class dest_gerenc:
 			p = ['vazio']
 		return p
 
+	# Lista de vizinhos
+	def viz_list(self):
+		return list(self.vizinhos)
+
+	# Lista de destinos e custos
 	def dest_list(self):
 		if self.destinos:
 			d = {}
@@ -205,22 +213,21 @@ class dest_gerenc:
 
 			return d
 
-
-
 '''					 Funcoes  				'''
+# Recebe e interpreta comandos do teclado
 def le_comando():
 	global ligado, HOST, PORT
 	while ligado:
 		cmd = input().split(" ")
-
+		# Adiciona vizinho
 		if cmd[0] == 'add' and len(cmd)>2:
 			# print('add nao implantado')
 			destinos.viz_add(cmd[1], cmd[2])
-
+		# Remove vizinho
 		elif cmd[0] == 'del' and len(cmd)>1:
 			# print('del nao implantado')
 			destinos.viz_del(cmd[1])
-
+		# Efetua ping
 		elif cmd[0] == 'trace' and len(cmd)>1:
 			# print('trace nao implantado')
 			dest = destinos.viz_to_dest(cmd[1])
@@ -234,49 +241,55 @@ def le_comando():
 				pacote = json.dumps(pac)
 				# print(pacote)
 				udp.sendto(pacote.encode('latin1'), (dest, PORT))
-			else:
-				print(cmd[1], 'nao pode ser alcancado')
-
+			# else:
+				# print(cmd[1], 'nao pode ser alcancado')
+		# imprime destinos conhecidos
 		elif cmd[0] == 'print':
 			for valor in destinos.to_print():
 			# for valor in destinos.dest_list().items():
 				print(valor)
-
+		# Fecha programa
 		elif cmd[0] == 'quit':
 			ligado = False
 
-		else:
-			print('comando invavido')
+		# else:
+			# print('comando invavido')
 
+# Envia o pacote 'update' com intervalo predefinido
 def envia_custos():
 	global tempo, tout, ligado, HOST, PORT
 	while ligado:
 		if tempo+tout < time():
 			tempo = time()
 			dest = destinos.dest_list()
+			viz = destinos.viz_list()
+			# print (json.dumps(destinos.destinos, indent=4))
+
 			if dest:
 				pac = {
 				"type": "update",
 				"source": HOST,
 				"distances": dest
 				}
-				for d in dest:
-					if d != HOST:
-						pac ["destination"] = d
+				for v in viz:
+					if v != HOST:
+						pac ["destination"] = v
 						pacote = json.dumps(pac)
 						# print(pacote)
-						udp.sendto(pacote.encode('latin1'), (d, PORT))
+						udp.sendto(pacote.encode('latin1'), (v, PORT))
 
-
+# Trata pacotes recebidos
 def recebe():
 	global ligado, HOST, PORT
 	while ligado:
-		pacote, addr = udp.recvfrom(1048576)
+		# Recebe pacote de ata 64kb
+		pacote, addr = udp.recvfrom(65536)
 		pac = json.loads(pacote.decode('latin1'))
 		# print ("recived: ",addr[0])
 		v = addr[0]
 		if pac['type'] == 'update':
-			destinos.dest_update(pac['distances'], v)
+			if pac ["destination"] = HOST:
+				destinos.dest_update(pac['distances'], v)
 
 		elif pac['type'] == 'trace':
 			pac['hops'].append(HOST)
@@ -292,20 +305,20 @@ def recebe():
 					pacote = json.dumps(rpac)
 					# print(pacote)
 					udp.sendto(pacote.encode('latin1'), (dest, PORT))
-				else:
-					print(rpac['destination'], 'nao pode ser alcancado')
+				# else:
+					# print(rpac['destination'], 'nao pode ser alcancado')
 			else:
 				dest = destinos.viz_to_dest(pac['destination'])
 				if dest:
 					pacote = json.dumps(pac)
 					# print(pacote)
 					udp.sendto(pacote.encode('latin1'), (dest, PORT))
-				else:
-					print(pac['destination'], 'nao pode ser alcancado')
+				# else:
+					# print(pac['destination'], 'nao pode ser alcancado')
 
 		elif pac['type'] == 'data':
 			if pac['destination'] == HOST:
-				print (json.dumps(pac['payload'], sort_keys=True, indent=4))
+				print (json.dumps(pac['payload'], indent=4))
 
 			else:
 				dest = destinos.viz_to_dest(pac['destination'])
@@ -313,8 +326,8 @@ def recebe():
 					pacote = json.dumps(pac)
 					# print(pacote)
 					udp.sendto(pacote.encode('latin1'), (dest, PORT))
-				else:
-					print(pac['destination'], 'nao pode ser alcancado')
+				# else:
+					# print(pac['destination'], 'nao pode ser alcancado')
 
 
 '''					Programa				'''
@@ -335,6 +348,7 @@ ligado = True
 
 destinos.viz_add(HOST, '0')
 
+# Le inicializa por arquivos STARTUPs
 if len(sys.argv) > 3:
 	for arq in sys.argv[3:]:
 		with open(arq, "r") as arq_start:
