@@ -71,6 +71,12 @@ destinos = {
 		...
 	}
 }
+tempo = {
+	<vizinho>:<ultimo_update>
+	<vizinho>:<ultimo_update>
+	<vizinho>:<ultimo_update>
+	...
+}
 '''
 # Gerenciador de vizinhos e destinos possiveis
 class dest_gerenc:
@@ -78,6 +84,7 @@ class dest_gerenc:
 	def __init__(self):
 		self.destinos = {} # Lista de destinos possiveis
 		self.vizinhos = {} # Lista de vizinhos
+		self.tempo = {} # Lista de ultimo updates
 
 		# controle de concorrencia
 		self.d_lock = threading.Lock()
@@ -85,6 +92,8 @@ class dest_gerenc:
 
 	# Atualisa a tabela de vizinhos e destinos
 	def viz_add(self, vizinho, custo):
+		self.tempo[vizinho] = time()
+
 		self.v_lock.acquire()
 
 		self.vizinhos[vizinho] = int(custo)
@@ -100,6 +109,7 @@ class dest_gerenc:
 		# verifica se vizinho existe e o remove
 		if vizinho in self.vizinhos:
 			del self.vizinhos[vizinho]
+			del self.tempo[vizinho]
 		# else:
 			# print(vizinho+' não encontrado')
 
@@ -154,6 +164,8 @@ class dest_gerenc:
 		self.d_lock.release()
 
 	def dest_update(self, dic, vizinho):
+		self.tempo[vizinho] = time()
+		# print (json.dumps(self.tempo, indent=4))
 		self.d_lock.acquire()
 		apagar = []
 		# print(dic)
@@ -201,17 +213,28 @@ class dest_gerenc:
 		return list(self.vizinhos)
 
 	# Lista de destinos e custos
-	def dest_list(self):
+	def dest_list(self, vizinho):
 		if self.destinos:
 			d = {}
 			self.d_lock.acquire()
 			for k,v in self.destinos.items():
-				viz = list(v)[0]
-				d[k] = str(v[viz])
+				# Destinos que nao sao o vizinho e que nao vieram dele
+				if vizinho != k and vizinho != list(v)[0]:
+					viz = list(v)[0]
+					d[k] = str(v[viz])
 
 			self.d_lock.release()
 
 			return d
+
+	def list_timeout(self, tt):
+		tout = []
+		for v,t in self.tempo.items():
+			if t+tt < time():
+				tout.append(v)
+
+		return tout
+
 
 '''					 Funcoes  				'''
 # Recebe e interpreta comandos do teclado
@@ -258,25 +281,33 @@ def le_comando():
 # Envia o pacote 'update' com intervalo predefinido
 def envia_custos():
 	global tempo, tout, ligado, HOST, PORT
+	contador = 0
 	while ligado:
 		if tempo+tout < time():
 			tempo = time()
-			dest = destinos.dest_list()
 			viz = destinos.viz_list()
+			viz.remove(HOST)
 			# print (json.dumps(destinos.destinos, indent=4))
 
-			if dest:
-				pac = {
-				"type": "update",
-				"source": HOST,
-				"distances": dest
-				}
-				for v in viz:
-					if v != HOST:
-						pac ["destination"] = v
-						pacote = json.dumps(pac)
-						# print(pacote)
-						udp.sendto(pacote.encode('latin1'), (v, PORT))
+			# Manda para cada vizinho os destinos que nao vieram dele
+			for v in viz:
+				dest = destinos.dest_list(v)
+				# del dest[HOST]
+				if dest:
+					pac = {
+					"type": "update",
+					"source": HOST,
+					"distances": dest,
+					"destination": v
+					}
+					pacote = json.dumps(pac)
+					udp.sendto(pacote.encode('latin1'), (v, PORT))
+					# print(pacote)
+
+			t_list = destinos.list_timeout(4*tout)
+			for v in t_list:
+				destinos.viz_del(v)
+
 
 # Trata pacotes recebidos
 def recebe():
@@ -288,7 +319,7 @@ def recebe():
 		# print ("recived: ",addr[0])
 		v = addr[0]
 		if pac['type'] == 'update':
-			if pac ["destination"] = HOST:
+			if pac ["destination"] == HOST:
 				destinos.dest_update(pac['distances'], v)
 
 		elif pac['type'] == 'trace':
@@ -347,6 +378,7 @@ destinos = dest_gerenc()
 ligado = True
 
 destinos.viz_add(HOST, '0')
+del destinos.tempo[HOST]
 
 # Le inicializa por arquivos STARTUPs
 if len(sys.argv) > 3:
