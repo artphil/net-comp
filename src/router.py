@@ -191,8 +191,14 @@ class dest_gerenc:
 
 	# identifica o melhor caminho para o destino
 	def viz_to_dest(self,dest):
+		global balanceamento
 		if dest in self.destinos:
-			return list(self.destinos[dest])[0]
+			if list(self.destinos[dest])[0] != list(self.destinos[dest])[balanceamento]:
+				balanceamento = 1
+				return list(self.destinos[dest])[0]
+			else if:
+				balanceamento = balanceamento + 1
+				return list(self.destinos[dest])[balanceamento]
 
 	# Lista [destino, custo, vizinho]
 	def to_print(self):
@@ -314,7 +320,7 @@ def recebe():
 	global ligado, HOST, PORT
 	while ligado:
 		# Recebe pacote de ata 64kb
-		pacote, addr = udp.recvfrom(65536)
+		pacote, addr = udp.recvfrom(1024)
 		pac = json.loads(pacote.decode('latin1'))
 		# print ("recived: ",addr[0])
 		v = addr[0]
@@ -376,6 +382,7 @@ tempo = time()
 tout = int(sys.argv[2])
 destinos = dest_gerenc()
 ligado = True
+balanceamento = 1
 
 destinos.viz_add(HOST, '0')
 del destinos.tempo[HOST]
