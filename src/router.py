@@ -196,9 +196,9 @@ class dest_gerenc:
 			if list(self.destinos[dest])[0] != list(self.destinos[dest])[balanceamento]:
 				balanceamento = 1
 				return list(self.destinos[dest])[0]
-			else if:
+			else:
 				balanceamento = balanceamento + 1
-				return list(self.destinos[dest])[balanceamento]
+				return list(self.destinos[dest])[balanceamento-1]
 
 	# Lista [destino, custo, vizinho]
 	def to_print(self):
