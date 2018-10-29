@@ -191,14 +191,24 @@ class dest_gerenc:
 
 	# identifica o melhor caminho para o destino
 	def viz_to_dest(self,dest):
-		global balanceamento
 		if dest in self.destinos:
-			if list(self.destinos[dest])[0] != list(self.destinos[dest])[balanceamento]:
-				balanceamento = 1
-				return list(self.destinos[dest])[0]
-			else:
-				balanceamento = balanceamento + 1
-				return list(self.destinos[dest])[balanceamento-1]
+			self.d_lock.acquire()
+
+			resultado = list(self.destinos[dest])[0]
+
+			if len(self.destinos[dest]) > 1:
+				lista = list(self.destinos[dest].items())
+				for prox in range(1,len(lista)):
+					first = prox-1
+					if lista[first][1] == lista[prox][1]:
+						aux = lista[first]
+						lista[first] = lista[prox]
+						lista[prox] = aux
+
+				self.destinos[dest] = dict(lista)
+
+			self.d_lock.release()
+			return resultado
 
 	# Lista [destino, custo, vizinho]
 	def to_print(self):
@@ -261,6 +271,7 @@ def le_comando():
 			# print('trace nao implantado')
 			dest = destinos.viz_to_dest(cmd[1])
 			if dest:
+				# print (dest)
 				pac = {
 					"type": "trace",
 					"source": HOST,
@@ -382,7 +393,6 @@ tempo = time()
 tout = int(sys.argv[2])
 destinos = dest_gerenc()
 ligado = True
-balanceamento = 1
 
 destinos.viz_add(HOST, '0')
 del destinos.tempo[HOST]
