@@ -4,22 +4,34 @@ import sys
 
 tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-print (sys.argv[1])
-ADDR = sys.argv[1].split(":")
+ADDR, P = sys.argv[1].split(":")
 OPT = int(sys.argv[2])
 
-HOST = ADDR[0]
-PORT = int(ADDR[1])
+HOST = ADDR.split("/")[0]
+PORT = int(P)
 dest = (HOST, PORT)
 
-msg = "GET / HTTP/1.1\n"+HOST+"\n\n"
+GET = ADDR[len(HOST):]
+if not GET:
+	GET = '/'
+print(GET)
 
+print('dest:\n', dest)
 tcp.connect(dest)
 
-tcp.sendall (msg.encode('latin1'))
+http = "GET "+GET+" HTTP/1.1\nHost: "+HOST+"\nAccept: application/json\nConnection: Close\n\n"
+# http = "GET /api/ix/1 HTTP/1.1\nUser-Agent: WebSniffer/1.0 (+http://websniffer.cc/)\nHost: www.peeringdb.com\nAccept: */*\nReferer: https://websniffer.cc/\nConnection: Close"
+print(http)
 
-resp = tcp.recv(1024)#.decode('latin1')
+tcp.send(http.encode('latin1'))
 
-print(resp)
+resp = tcp.recv(1024).decode('latin1')
+txt = ""
+while len(resp)>0:
+	txt += resp
+	resp = tcp.recv(1024).decode('latin1')
 
 tcp.close()
+
+# j = json.loads(txt)
+print(txt)
