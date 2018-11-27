@@ -1,2 +1,2 @@
 # RESTservice
-Trabalho pratico da disciplina Rede de Computadores da UFMG - Serviço REST
+Trabalho prático da disciplina Rede de Computadores da UFMG - Serviço REST
