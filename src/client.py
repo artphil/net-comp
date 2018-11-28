@@ -1,37 +1,64 @@
+'''
+Universidade Federal de Minas Gerais
+Trabalho pratico da disciplina Rede de Computadores da UFMG
+Protocolo HTTP e servico REST
+Arthur Phillip D. Silva & Gabriel Almeida de Jesus
+Cliente
+'''
 import json
 import socket
+import ssl
 import sys
+from time import time
 
-tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+tam_max = 1024
 
-ADDR, P = sys.argv[1].split(":")
+
+def get_json(api):
+	global dest
+	t = time()
+
+	tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	tcp.connect(dest)
+	tcp = ssl.wrap_socket(tcp, keyfile=None, certfile=None, server_side=False, cert_reqs=ssl.CERT_NONE, ssl_version=ssl.PROTOCOL_SSLv23)
+
+	http = "GET "+api+" HTTP/1.1\r\nHost: "+HOST+"\r\nAccept: */*\r\nConnection: Close\r\n\r\n" #
+
+	tcp.send(http.encode('latin1'))
+
+	resp = tcp.recv(tam_max).decode('latin1')
+	txt = ''
+	while len(resp)>0:
+		txt += resp
+		resp = tcp.recv(tam_max).decode('latin1')
+
+	tcp.close()
+	print("\n", txt)
+	head = txt.split('{')[0]
+	return json.loads(txt[len(head):])
+
+
+
+HOST, P = sys.argv[1].split(":")
 OPT = int(sys.argv[2])
-
-HOST = ADDR.split("/")[0]
 PORT = int(P)
+
 dest = (HOST, PORT)
 
-GET = ADDR[len(HOST):]
-if not GET:
-	GET = '/'
-print(GET)
+ix = get_json("/api/ix") #modificar para /api/ixids
 
-print('dest:\n', dest)
-tcp.connect(dest)
+if OPT == 1:
+	ix_nets = {}
+	for rede in ix['data']:
+		print(rede['id'])
+		net = get_json("/api/ixlan/"+str(rede['id']))
+		ix_nets[rede['id']] = {}
+		ix_nets[rede['id']]['nome'] = rede['name']
+		if 'data' in net:
+			ix_nets[rede['id']]['n_nets'] = len(net['data'])
+		else:
+			ix_nets[rede['id']]['n_nets'] = 0
+	print(json.dumps(ix_nets, indent=True))
 
-http = "GET "+GET+" HTTP/1.1\nHost: "+HOST+"\nAccept: application/json\nConnection: Close\n\n"
-# http = "GET /api/ix/1 HTTP/1.1\nUser-Agent: WebSniffer/1.0 (+http://websniffer.cc/)\nHost: www.peeringdb.com\nAccept: */*\nReferer: https://websniffer.cc/\nConnection: Close"
-print(http)
-
-tcp.send(http.encode('latin1'))
-
-resp = tcp.recv(1024).decode('latin1')
-txt = ""
-while len(resp)>0:
-	txt += resp
-	resp = tcp.recv(1024).decode('latin1')
-
-tcp.close()
-
-# j = json.loads(txt)
-print(txt)
+	for id in ix_nets:
+		print("{}	{}	{}".format(id, ix_nets[id][nome], ix_nets[id][n_nets]))
