@@ -11,7 +11,7 @@ import ssl
 import sys
 from time import time
 
-tam_max = 1024
+MAX_TAM = 1024
 
 
 def get_json(api):
@@ -26,11 +26,11 @@ def get_json(api):
 
 	tcp.send(http.encode('latin1'))
 
-	resp = tcp.recv(tam_max).decode('latin1')
+	resp = tcp.recv(MAX_TAM).decode('latin1')
 	txt = ''
 	while len(resp)>0:
 		txt += resp
-		resp = tcp.recv(tam_max).decode('latin1')
+		resp = tcp.recv(MAX_TAM).decode('latin1')
 
 	tcp.close()
 	print("\n", txt)
@@ -46,12 +46,31 @@ PORT = int(P)
 dest = (HOST, PORT)
 
 ix = get_json("/api/ix") #modificar para /api/ixids
+netixlan = get_json("/api/netixlan")
+net = get_json("/api/net")
+
+ dados={}
+if OPT == 0:
+	for lan in netixlan['data']:
+		if lan['net_id'] not in 
+	# net_ix = {}
+	# for rede in ix['data']:
+	# 	net = get_json("/api/ixlan/"+str(rede['id']))
+	# 	for lan in net['data']:
+	# 		if lan['id'] in net_ix:
+	# 			net_ix[lan['id']]['nome'] = lan['name']
+	# 			net_ix[lan['id']]['n_ixps'] += 1
+	#
+	# 		else:
+	# 			net_ix[lan['id']] = {}
+	# 			net_ix[lan['id']]['nome'] = lan['name']
+	# 			net_ix[lan['id']]['n_ixps'] = 1
 
 if OPT == 1:
 	ix_nets = {}
 	for rede in ix['data']:
 		print(rede['id'])
-		net = get_json("/api/ixlan/"+str(rede['id']))
+		net = get_json("/api/netixlan/"+str(rede['id']))
 		ix_nets[rede['id']] = {}
 		ix_nets[rede['id']]['nome'] = rede['name']
 		if 'data' in net:
@@ -60,5 +79,5 @@ if OPT == 1:
 			ix_nets[rede['id']]['n_nets'] = 0
 	print(json.dumps(ix_nets, indent=True))
 
-	for id in ix_nets:
-		print("{}	{}	{}".format(id, ix_nets[id][nome], ix_nets[id][n_nets]))
+	for k, v in ix_nets.items():
+		print("{}	{}	{}".format(k, v['nome'], v['n_nets']))
