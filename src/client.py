@@ -49,10 +49,19 @@ ix = get_json("/api/ix") #modificar para /api/ixids
 netixlan = get_json("/api/netixlan")
 net = get_json("/api/net")
 
- dados={}
+dados={}
 if OPT == 0:
 	for lan in netixlan['data']:
-		if lan['net_id'] not in 
+		if lan['net_id'] not in dados:
+			dados[lan['net_id']] = {}
+			dados[lan['net_id']]['num'] = []
+		if lan['ix_id'] not in dados[lan['net_id']]['num']:
+			dados[lan['net_id']]['num'].append(lan['ix_id'])
+	for n in net['data']:
+		if n['id'] in dados:
+			dados[n['id']]['nome'] = n['name']
+
+
 	# net_ix = {}
 	# for rede in ix['data']:
 	# 	net = get_json("/api/ixlan/"+str(rede['id']))
@@ -67,17 +76,26 @@ if OPT == 0:
 	# 			net_ix[lan['id']]['n_ixps'] = 1
 
 if OPT == 1:
-	ix_nets = {}
-	for rede in ix['data']:
-		print(rede['id'])
-		net = get_json("/api/netixlan/"+str(rede['id']))
-		ix_nets[rede['id']] = {}
-		ix_nets[rede['id']]['nome'] = rede['name']
-		if 'data' in net:
-			ix_nets[rede['id']]['n_nets'] = len(net['data'])
-		else:
-			ix_nets[rede['id']]['n_nets'] = 0
-	print(json.dumps(ix_nets, indent=True))
-
-	for k, v in ix_nets.items():
-		print("{}	{}	{}".format(k, v['nome'], v['n_nets']))
+	for lan in netixlan['data']:
+		if lan['ix_id'] not in dados:
+			dados[lan['ix_id']] = {}
+			dados[lan['ix_id']]['num'] = []
+		if lan['net_id'] not in dados[lan['ix_id']]['num']:
+			dados[lan['ix_id']]['num'].append(lan['net_id'])
+	for n in ix['data']:
+		if n['id'] in dados:
+			dados[n['id']]['nome'] = n['name']
+	# ix_nets = {}
+	# for rede in ix['data']:
+	# 	print(rede['id'])
+	# 	net = get_json("/api/netixlan/"+str(rede['id']))
+	# 	ix_nets[rede['id']] = {}
+	# 	ix_nets[rede['id']]['nome'] = rede['name']
+	# 	if 'data' in net:
+	# 		ix_nets[rede['id']]['n_nets'] = len(net['data'])
+	# 	else:
+	# 		ix_nets[rede['id']]['n_nets'] = 0
+	# print(json.dumps(ix_nets, indent=True))
+# sort(dados)
+for k, v in dados.items():
+	print("{}	{}	{}".format(k, v['nome'], len(v['num'])))
