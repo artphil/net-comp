@@ -45,8 +45,11 @@ def get_txt(api):
 	tcp.send(http.encode('latin1'))
 
 	resp = tcp.recv(MAX_TAM).decode('latin1')
+	tcp.close()
+	head = resp.split('{',1)[0]
+	print(http, "\n", resp, "\n")
 
-	return resp
+	return resp[len(head):]
 
 HOST, P = sys.argv[1].split(":")
 OPT = int(sys.argv[2])
@@ -55,47 +58,22 @@ PORT = int(P)
 dest = (HOST, PORT)
 
 ix = get_json("/api/ix")
-# netixlan = get_json("/api/netixlan")
-# net = get_json("/api/net")
 
 dados={}
-data=[]
-if OPT == 0:
-	# for lan in netixlan['data']:
-	# 	# if lan['ix_id'] == ix_fonec:
-	# 	# 	data.append(lan)
-	# 	if lan['net_id'] not in dados:
-	# 		dados[lan['net_id']] = {}
-	# 		dados[lan['net_id']]['num'] = []
-	# 	if lan['ix_id'] not in dados[lan['net_id']]['num']:
-	# 		dados[lan['net_id']]['num'].append(lan['ix_id'])
-	# for n in net['data']:
-	# 	if n['id'] in dados:
-	# 		dados[n['id']]['nome'] = n['name']
 
+if OPT == 0:
 	for rede in ix['data']:
 		net = get_json("/api/ixnets/"+str(rede['id']))
 		for lan in net['data']:
-			if lan['id'] in dados:
-				dados[lan['id']]['num'] += 1
+			if lan['net_id'] in dados:
+				dados[lan['net_id']]['num'] += 1
 			else:
-				dados[lan['id']] = {}
-				dados[lan['id']]['num'] = 1
-
-	for id in dados:
-		dados[id]['nome'] = get_txt("/api/netname/"+str(id))
+				dados[lan['net_id']] = {}
+				dados[lan['net_id']]['num'] = 1
+				nome = get_json("/api/netname/"+str(lan['net_id']))
+				dados[lan['net_id']]['nome'] = nome['data'][0]
 
 if OPT == 1:
-	# for lan in netixlan['data']:
-	# 	if lan['ix_id'] not in dados:
-	# 		dados[lan['ix_id']] = {}
-	# 		dados[lan['ix_id']]['num'] = []
-	# 	if lan['net_id'] not in dados[lan['ix_id']]['num']:
-	# 		dados[lan['ix_id']]['num'].append(lan['net_id'])
-	# for n in ix['data']:
-	# 	if n['id'] in dados:
-	# 		dados[n['id']]['nome'] = n['name']
-
 	for rede in ix['data']:
 		print(rede['id'])
 		net = get_json("/api/ixnets/"+str(rede['id']))
@@ -106,6 +84,11 @@ if OPT == 1:
 		else:
 			dados[rede['id']]['num'] = 0
 
-# sort(dados)
 for k, v in dados.items():
 	print("{}	{}	{}".format(k, v['nome'], v['num']))
+
+# Erase
+output = open('output'+str(OPT)+'.csv', 'w')
+for k, v in dados.items():
+	output.write("{};{};{};\n".format(k, v['nome'], v['num']))
+output.close()

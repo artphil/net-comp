@@ -39,7 +39,7 @@ def api_netixlan(ix_id):
 	resposta = {'meta':{}, 'data':[]}
 	for conect in lan['data']:
 		if conect['ix_id'] == ix_id:
-			resposta['data'].append(conect)
+			resposta['data'].append(conect.copy())
 	response = Response(
 		response = json.dumps(resposta, default=lambda o: o.__dict__),
 		status = 200,
@@ -47,11 +47,19 @@ def api_netixlan(ix_id):
 	)
 	return response
 
-@app.route("/api/netname/<int:id_net>")
-def api_net(id_net):
+@app.route("/api/netname/<int:net_id>")
+def api_net(net_id):
+	resposta = {'meta':{}, 'data':[]}
 	for conect in net['data']:
-		if conect['net_id'] == net_id:
-			return conect['name']
+		if conect['id'] == net_id:
+			resposta['data'].append(conect["name"])
+			break
+	response = Response(
+		response = json.dumps(resposta, default=lambda o: o.__dict__),
+		status = 200,
+		mimetype = 'application/json'
+	)
+	return response
 
 # Inicialização do Servidor
 if __name__ == "__main__":
