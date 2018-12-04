@@ -5,35 +5,54 @@ Protocolo HTTP e servico REST
 Arthur Phillip D. Silva & Gabriel Almeida de Jesus
 Servidor
 '''
-
 import json
-import socket
 import sys
+from flask import Flask, Response
 
-MAX_TAM = 1024
+arq = open('ix.json', 'r')
+ix = json.load(arq)
+arq.close()
 
-HOST = '' # Endereco de IP do Servidor
-PORT = int(sys.argv[1]) # Porta que o Servidor esta
+arq = open('net.json', 'r')
+net = json.load(arq)
+arq.close()
 
-tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-orig = (HOST, PORT)
+arq = open('netixlan.json', 'r')
+lan = json.load(arq)
+arq.close()
 
-# Abertura passiva de Conexão
-tcp.bind(orig)
-tcp.listen(1)
-print('Servidor Escutando')
 
-def responde(con, cliente):
-	print('Conectado com ', cliente)
-	request = con.recv(MAX_TAM).decode('latin1')
+app = Flask(__name__)
 
-	print('Requisicao = ', request)
+@app.route("/api/ix")
+def api_ix():
+	response = Response(
+		response = json.dumps(ix, default=lambda o: o.__dict__),
+		status = 200,
+		mimetype = 'application/json'
+	)
+	return response
 
-while True:
-	# Aceitando Conexões
-	con, cliente = tcp.accept()
-	con.settimeout(15)
-	responde(con, cliente)
+@app.route("/api/ixnets/<int:ix_id>")
+def api_netixlan(ix_id):
+	lista = []
+	resposta = {'meta':{}, 'data':[]}
+	for conect in lan['data']:
+		if conect['ix_id'] == ix_id:
+			resposta['data'].append(conect)
+	response = Response(
+		response = json.dumps(resposta, default=lambda o: o.__dict__),
+		status = 200,
+		mimetype = 'application/json'
+	)
+	return response
 
-# Fecha Conexão
-tcp.close()
+@app.route("/api/netname/<int:id_net>")
+def api_net(id_net):
+	for conect in net['data']:
+		if conect['net_id'] == net_id:
+			return conect['name']
+
+# Inicialização do Servidor
+if __name__ == "__main__":
+	app.run(port=int(sys.argv[1]), debug=False, use_reloader=True)
