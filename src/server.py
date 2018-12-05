@@ -9,58 +9,57 @@ import json
 import sys
 from flask import Flask, Response
 
-arq = open('ix.json', 'r')
-ix = json.load(arq)
-arq.close()
-
-arq = open('net.json', 'r')
-net = json.load(arq)
-arq.close()
-
-arq = open('netixlan.json', 'r')
-lan = json.load(arq)
-arq.close()
-
-
+# Inicia flask
 app = Flask(__name__)
 
-@app.route("/api/ix")
+# tratamento das api's
+@app.route("/api/ix") # Retorna o arquivo IX inteiro 
 def api_ix():
 	response = Response(
-		response = json.dumps(ix, default=lambda o: o.__dict__),
+		response = json.dumps(json_ix, default=lambda o: o.__dict__),
 		status = 200,
 		mimetype = 'application/json'
 	)
 	return response
 
-@app.route("/api/ixnets/<int:ix_id>")
+@app.route("/api/ixnets/<int:ix_id>") # Retorna  de NET's para o IX fornecido
 def api_netixlan(ix_id):
-	lista = []
-	resposta = {'meta':{}, 'data':[]}
-	for conect in lan['data']:
-		if conect['ix_id'] == ix_id:
-			resposta['data'].append(conect.copy())
-	response = Response(
-		response = json.dumps(resposta, default=lambda o: o.__dict__),
+	data = {'meta':{}, 'data':[]}
+	for edge in json_lan['data']:
+		if edge['ix_id'] == ix_id:
+			data['data'].append(edge)
+
+	return Response(
+		response = json.dumps(data, default=lambda o: o.__dict__),
 		status = 200,
 		mimetype = 'application/json'
 	)
-	return response
 
-@app.route("/api/netname/<int:net_id>")
+@app.route("/api/netname/<int:net_id>") # Retorna nome da NET fornecida
 def api_net(net_id):
-	resposta = {'meta':{}, 'data':[]}
-	for conect in net['data']:
-		if conect['id'] == net_id:
-			resposta['data'].append(conect["name"])
+	data = {'meta':{}, 'data':[]}
+	for edge in json_net['data']:
+		if edge['id'] == net_id:
+			data['data'].append(edge["name"])
 			break
-	response = Response(
-		response = json.dumps(resposta, default=lambda o: o.__dict__),
+	
+	return Response(
+		response = json.dumps(data, default=lambda o: o.__dict__),
 		status = 200,
 		mimetype = 'application/json'
 	)
-	return response
 
-# Inicialização do Servidor
-if __name__ == "__main__":
-	app.run(port=int(sys.argv[1]), debug=False, use_reloader=True)
+## Programa 
+
+# Importa json dos arquivos
+with open('ix.json', 'r') as arq: 
+	json_ix = json.load(arq)
+
+with open('net.json', 'r') as arq: 
+	json_net = json.load(arq)
+
+with open('netixlan.json', 'r') as arq: 
+	json_lan = json.load(arq)
+
+# Inicia servidor
+app.run(port=int(sys.argv[1]), use_reloader=True)

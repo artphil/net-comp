@@ -2,93 +2,94 @@
 Universidade Federal de Minas Gerais
 Trabalho pratico da disciplina Rede de Computadores da UFMG
 Protocolo HTTP e servico REST
-Arthur Phillip D. Silva & Gabriel Almeida de Jesus
+Arthur Phillip D. Silva 
 Cliente
 '''
 import json
 import socket
-import ssl
 import sys
+# import ssl
 
-MAX_TAM = 1024
+# Tamanho do pacote recebido
+pack_size = 10000
 
-def get_json(api):
+# Recebe pacote tipo json
+def get_api(ext):
 	global dest
 
+	# Abre conexao
 	tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	tcp.connect(dest)
+
+	# Protocolo de seguranca
 	# tcp = ssl.wrap_socket(tcp, keyfile=None, certfile=None, server_side=False, cert_reqs=ssl.CERT_NONE, ssl_version=ssl.PROTOCOL_SSLv23)
 
-	http = "GET "+api+" HTTP/1.1\r\nHost: "+HOST+"\r\nAccept: */*\r\nConnection: Close\r\n\r\n" #
+	# Cabecalho de requisicao HTTP
+	http = "GET "+ext+" HTTP/1.1\r\nHost: "+HOST+"\r\nAccept: */*\r\nConnection: Close\r\n\r\n" #
 
+	# Envio do pacote 
 	tcp.send(http.encode('latin1'))
 
-	resp = tcp.recv(MAX_TAM).decode('latin1')
-	txt = ''
-	while len(resp)>0:
-		txt += resp
-		resp = tcp.recv(MAX_TAM).decode('latin1')
+	# Recebimento e montagem da mensagem
+	pack = tcp.recv(pack_size)
+	msg = ''
+	while len(pack) > 0:
+		msg += pack.decode('latin1')
+		pack = tcp.recv(pack_size)
 
+	# Fecha conexao
 	tcp.close()
-	head = txt.split('{',1)[0]
-	print(http, "\n", head, "\n")
-	return json.loads(txt[len(head):])
 
-def get_txt(api):
-	global dest
+	# Separa Cabecalho da mensagem 
+	head , msg_json = msg.split('{',1)
+	
+	return "{" + msg_json
 
-	tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-	tcp.connect(dest)
+## Programa
 
-	http = "GET "+api+" HTTP/1.1\r\nHost: "+HOST+"\r\nAccept: */*\r\nConnection: Close\r\n\r\n" #
-
-	tcp.send(http.encode('latin1'))
-
-	resp = tcp.recv(MAX_TAM).decode('latin1')
-	tcp.close()
-	head = resp.split('{',1)[0]
-	print(http, "\n", resp, "\n")
-
-	return resp[len(head):]
-
-HOST, P = sys.argv[1].split(":")
-OPT = int(sys.argv[2])
-PORT = int(P)
-
+# Leitura de argumentos
+HOST, sPORT = sys.argv[1].split(":")
+PORT = int(sPORT)
 dest = (HOST, PORT)
 
-ix = get_json("/api/ix")
+OPT = int(sys.argv[2])
 
-dados={}
+# Requisicao do 'IX'
+ix = get_api("/api/ix")
 
-if OPT == 0:
-	for rede in ix['data']:
-		net = get_json("/api/ixnets/"+str(rede['id']))
+# Resultado
+data={}
+
+# Tratamento de opcoes
+if OPT == 0: # Quantos IX para cada NET
+	for item in ix['data']:
+		print(item)
+		net = get_api("/api/ixnets/"+str(item['id']))
 		for lan in net['data']:
-			if lan['net_id'] in dados:
-				dados[lan['net_id']]['num'] += 1
+			if lan['net_id'] in data:
+				data[lan['net_id']]['num'] += 1
 			else:
-				dados[lan['net_id']] = {}
-				dados[lan['net_id']]['num'] = 1
-				nome = get_json("/api/netname/"+str(lan['net_id']))
-				dados[lan['net_id']]['nome'] = nome['data'][0]
+				data[lan['net_id']] = {}
+				data[lan['net_id']]['num'] = 1
+				name = get_api("/api/netname/"+str(lan['net_id']))
+				data[lan['net_id']]['name'] = name['data'][0]
 
-if OPT == 1:
-	for rede in ix['data']:
-		print(rede['id'])
-		net = get_json("/api/ixnets/"+str(rede['id']))
-		dados[rede['id']] = {}
-		dados[rede['id']]['nome'] = rede['name']
+elif OPT == 1: # Quantos NET para cada IX
+	for item in ix['data']:
+		net = get_api("/api/ixnets/"+str(item['id']))
+		data[item['id']] = {}
+		data[item['id']]['name'] = item['name']
 		if 'data' in net:
-			dados[rede['id']]['num'] = len(net['data'])
+			data[item['id']]['num'] = len(net['data'])
 		else:
-			dados[rede['id']]['num'] = 0
+			data[item['id']]['num'] = 0
 
-for k, v in dados.items():
-	print("{}	{}	{}".format(k, v['nome'], v['num']))
+# Imprime arquivo '.csv' para analise
+p = False
+if p: output = open('output'+str(OPT)+'.csv', 'w')
 
-# Erase
-output = open('output'+str(OPT)+'.csv', 'w')
-for k, v in dados.items():
-	output.write("{};{};{};\n".format(k, v['nome'], v['num']))
-output.close()
+for kid, dat in data.items():
+	print("{}	{}	{}".format(kid, dat['name'], dat['num']))
+	if p: output.write("{};{};{};\n".format(kid, dat['name'], dat['num']))
+
+if p: output.close()
