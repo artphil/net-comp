@@ -83,13 +83,14 @@ elif OPT == 1: # Quantos NET para cada IX
 		else:
 			data[item['id']]['num'] = 0
 
-# Imprime arquivo '.csv' para analise
-p = True
-if p: output = open('output'+str(OPT)+'.csv', 'w')
+# Imprime arquivo '.csv' para analise (# p_arq) 
+p = False
+if p: output = open('output'+str(OPT)+'.csv', 'w') # p_arq
 
+# Imprime resultado em tela
 for kid, dat in data.items():
 	if dat['num'] > 0:
 		print("{}	{}	{}".format(kid, dat['name'], dat['num']))
-		if p: output.write("{};{};{};\n".format(kid, dat['name'], dat['num']))
+		if p: output.write("{};{};{};\n".format(kid, dat['name'], dat['num'])) # p_arq
 
-if p: output.close()
+if p: output.close() # p_arq
