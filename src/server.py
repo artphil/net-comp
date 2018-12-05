@@ -2,7 +2,7 @@
 Universidade Federal de Minas Gerais
 Trabalho pratico da disciplina Rede de Computadores da UFMG
 Protocolo HTTP e servico REST
-Arthur Phillip D. Silva & Gabriel Almeida de Jesus
+Arthur Phillip D. Silva 
 Servidor
 '''
 import json
