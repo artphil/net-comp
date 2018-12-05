@@ -43,7 +43,7 @@ def get_api(ext):
 	# Separa Cabecalho da mensagem 
 	head , msg_json = msg.split('{',1)
 	
-	return "{" + msg_json
+	return json.loads("{" + msg_json)
 
 ## Programa
 
@@ -63,7 +63,6 @@ data={}
 # Tratamento de opcoes
 if OPT == 0: # Quantos IX para cada NET
 	for item in ix['data']:
-		print(item)
 		net = get_api("/api/ixnets/"+str(item['id']))
 		for lan in net['data']:
 			if lan['net_id'] in data:
