@@ -14,7 +14,7 @@ app = Flask(__name__)
 
 # tratamento das api's
 @app.route("/api/ix") # Retorna o arquivo IX inteiro 
-def api_ix():
+def ix():
 	response = Response(
 		response = json.dumps(json_ix, default=lambda o: o.__dict__),
 		status = 200,
@@ -22,11 +22,11 @@ def api_ix():
 	)
 	return response
 
-@app.route("/api/ixnets/<int:ix_id>") # Retorna  de NET's para o IX fornecido
-def api_netixlan(ix_id):
+@app.route("/api/ixnets/<int:id>") # Retorna  de NET's para o IX fornecido
+def ixnets(id):
 	data = {'meta':{}, 'data':[]}
 	for edge in json_lan['data']:
-		if edge['ix_id'] == ix_id:
+		if edge['ix_id'] == id:
 			data['data'].append(edge)
 
 	return Response(
@@ -35,11 +35,11 @@ def api_netixlan(ix_id):
 		mimetype = 'application/json'
 	)
 
-@app.route("/api/netname/<int:net_id>") # Retorna nome da NET fornecida
-def api_net(net_id):
+@app.route("/api/netname/<int:id>") # Retorna nome da NET fornecida
+def netname(id):
 	data = {'meta':{}, 'data':[]}
 	for edge in json_net['data']:
-		if edge['id'] == net_id:
+		if edge['id'] == id:
 			data['data'].append(edge["name"])
 			break
 	
