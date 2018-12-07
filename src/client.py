@@ -1,10 +1,19 @@
 '''
 Universidade Federal de Minas Gerais
 Trabalho pratico da disciplina Rede de Computadores da UFMG
-Protocolo HTTP e servico REST
-Arthur Phillip D. Silva 
+Protocolo HTTP e servico API REST
+Arthur Phillip Silva 
 Cliente
 '''
+'''
+Chamada:
+python client.py <HOST>:<PORT> <OPT>
+
+HOST: endereco DNS/IP do servidor
+PORT: porta do servidor para servico API
+OPT:  Opcao de analise - 0 (IX/NET) ou 1 (NET/IX)
+'''
+
 import json
 import socket
 import sys
